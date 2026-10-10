@@ -1,0 +1,76 @@
+cmake_minimum_required(VERSION 3.16)
+project(GLUTApp LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_package(OpenGL REQUIRED)
+find_package(GLUT REQUIRED)
+
+# Source files / executable targets
+set(APP_SOURCES
+  swatches
+  additive
+  subtractive
+  gradient
+  hsv_test
+  wheel
+  task1_gray
+  task2_venn
+  task3_hsv
+  task4_sunset
+  bonus
+)
+
+# Windows / MSYS2: prefer the imported freeglut target if available
+if(WIN32)
+  find_package(GLUT CONFIG QUIET)
+endif()
+
+foreach(APP IN LISTS APP_SOURCES)
+  add_executable(${APP} ${APP}.cpp)
+
+  target_include_directories(${APP} PRIVATE
+    ${OPENGL_INCLUDE_DIR}
+    ${GLUT_INCLUDE_DIRS}
+  )
+
+  target_link_libraries(${APP} PRIVATE
+    ${OPENGL_LIBRARIES}
+  )
+
+  if(WIN32)
+    if(TARGET GLUT::GLUT)
+      target_link_libraries(${APP} PRIVATE GLUT::GLUT)
+    else()
+      target_link_libraries(${APP} PRIVATE
+        ${GLUT_LIBRARIES}
+        opengl32
+        glu32
+      )
+    endif()
+  else()
+    target_link_libraries(${APP} PRIVATE
+      ${GLUT_LIBRARIES}
+    )
+  endif()
+endforeach()
+
+# Copy freeglut DLL beside each executable on Windows
+if(WIN32)
+  find_file(FREEGLUT_DLL
+    NAMES freeglut.dll libfreeglut.dll
+    PATHS "C:/msys64/mingw64/bin"
+    NO_DEFAULT_PATH
+  )
+
+  if(FREEGLUT_DLL)
+    foreach(APP IN LISTS APP_SOURCES)
+      add_custom_command(TARGET ${APP} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${FREEGLUT_DLL}"
+        "$<TARGET_FILE_DIR:${APP}>"
+      )
+    endforeach()
+  endif()
+endif()
